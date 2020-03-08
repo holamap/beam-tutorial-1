@@ -12,6 +12,8 @@ import org.apache.beam.sdk.values.KV;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
+import java.math.BigDecimal;;
+
 /**
  * An example of streaming job which reads unbounded data from Kafka.
  * It implements the following pipeline:
@@ -82,8 +84,9 @@ public class FilterObjects {
       if (split.length < 3) {
         return false;
       }
-      Integer coordX = Integer.valueOf(split[1]);
-      Integer coordY = Integer.valueOf(split[2]);
+      Integer coordX = new BigDecimal(split[1]).intValue();
+      Integer coordY = new BigDecimal(split[2]).intValue();
+      
       return (coordX >= 0 && coordX < this.maxCoordX
           && coordY >= 0 && coordY < this.maxCoordY);
     }
@@ -106,6 +109,7 @@ public class FilterObjects {
                   @ProcessElement
                   public void processElement(ProcessContext processContext) {
                     KafkaRecord<Long, String> record = processContext.element();
+                    System.out.println("Processing Records....");
                     processContext.output(record.getKV().getValue());
                   }
                 }))
@@ -116,7 +120,12 @@ public class FilterObjects {
             "ExtractPayload",
             ParDo.of(
                 new DoFn<String, KV<String, String>>() {
-                  @ProcessElement
+                  /**
+					 * 
+					 */
+					private static final long serialVersionUID = 6249846590274304699L;
+
+				@ProcessElement
                   public void processElement(ProcessContext c) throws Exception {
                     c.output(KV.of("filtered", c.element()));
                   }
@@ -129,6 +138,11 @@ public class FilterObjects {
                 .withKeySerializer(org.apache.kafka.common.serialization.StringSerializer.class)
                 .withValueSerializer(org.apache.kafka.common.serialization.StringSerializer.class));
 
+    System.out.print("Pipeline Pre Running");
+
     pipeline.run();
+    
+    System.out.print("Pipeline Running");
+    
   }
 }
